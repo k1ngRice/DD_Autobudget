@@ -27,7 +27,7 @@
   .header-right { display: flex; align-items: center; gap: 6px; }
   #sync-dot { width: 7px; height: 7px; border-radius: 50%; background: #555; flex-shrink: 0; transition: background 0.3s; }
   #sync-dot.live { background: #5cd98a; }
-  #sync-label { font-family: var(--mono); font-size: 0.65rem; opacity: 0.6; max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #sync-label { font-family: var(--mono); font-size: 0.65rem; opacity: 0.6; max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: none; }
   .icon-btn { background: rgba(255,255,255,0.12); border: none; color: white; border-radius: 8px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 15px; }
   .icon-btn:active { background: rgba(255,255,255,0.25); }
 
@@ -203,6 +203,8 @@
     .nav-btn { font-size: 11px; font-family: var(--sans); font-weight: 500; background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 5px; padding: 5px 10px; cursor: pointer; letter-spacing: 0.03em; }
     .nav-btn:hover { background: rgba(255,255,255,0.25); }
     .icon-btn { display: none; }
+    .desktop-nav-btns { display: flex !important; }
+    #sync-label { display: inline; }
     .modal-overlay { align-items: center; padding: 1rem; }
     .modal { border-radius: 14px; max-width: 380px; padding: 1.75rem; }
     .section-label { display: none; }
@@ -223,7 +225,7 @@
     <div id="sync-dot"></div>
     <span id="sync-label"></span>
     <!-- Desktop buttons -->
-    <span class="desktop-nav-btns" style="display:flex;gap:8px;">
+    <span class="desktop-nav-btns" style="display:none;gap:8px;">
       <button class="nav-btn" onclick="openBalanceModal()">⚙ Balances</button>
       <button id="logout-btn-desk" class="nav-btn" onclick="logout()" style="display:none;">Sign Out</button>
       <button class="nav-btn" onclick="resetConfig()">⚙ Config</button>
@@ -400,7 +402,7 @@
       </div>
 
       <!-- Desktop-only: transactions + form side by side -->
-      <div class="desktop-layout">
+      <div class="desktop-layout desktop-form" style="display:none;">
         <div class="desktop-tx-panel">
           <div class="card" style="margin-bottom:0;">
             <div class="tabs">
@@ -479,7 +481,7 @@
     </div>
 
     <!-- Desktop-only spending chart (below layout) -->
-    <div class="desktop-form" style="display:none;margin-top:1rem;">
+    <div class="desktop-form" style="display:none;margin-top:0;">
       <div class="card">
         <div class="card-header"><span class="card-title">Spending by Category</span></div>
         <div style="padding:1rem;" id="cat-bars"><div class="empty">No expenses yet</div></div>
