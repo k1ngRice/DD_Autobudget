@@ -140,16 +140,16 @@
   /* ── Slide-up sheet ── */
   .sheet-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 60; display: none; backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
   .sheet-overlay.open { display: block; }
-  .sheet { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-radius: 24px 24px 0 0; padding: 0 1.25rem calc(2.25rem + var(--safe-bottom)); z-index: 61; max-height: 90vh; overflow-y: auto; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.32,0.72,0,1); }
+  .sheet { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-radius: 24px 24px 0 0; padding: 0 1.25rem calc(2.25rem + var(--safe-bottom)); z-index: 61; max-height: 90vh; overflow-y: auto; overflow-x: hidden; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.32,0.72,0,1); }
   .sheet.open { transform: translateY(0); }
   .sheet-handle { width: 32px; height: 4px; background: #d0cdc8; border-radius: 2px; margin: 14px auto 18px; }
   .sheet-title { font-size: 17px; font-weight: 600; margin-bottom: 1.25rem; color: var(--text); }
 
   /* ── Forms ── */
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; min-width: 0; }
   .form-full { grid-column: 1 / -1; }
   label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin-bottom: 5px; }
-  input, select { width: 100%; padding: 12px 13px; font-size: 16px; font-family: var(--sans); border: 1px solid var(--border); border-radius: 12px; background: var(--bg); color: var(--text); outline: none; appearance: auto; }
+  input, select { width: 100%; max-width: 100%; padding: 12px 13px; font-size: 16px; font-family: var(--sans); border: 1px solid var(--border); border-radius: 12px; background: var(--bg); color: var(--text); outline: none; appearance: auto; box-sizing: border-box; }
   input:focus, select:focus { border-color: var(--accent); background: var(--surface); }
   .btn { width: 100%; padding: 15px; font-size: 15px; font-weight: 600; font-family: var(--sans); background: var(--accent); color: white; border: none; border-radius: 14px; cursor: pointer; margin-top: 6px; }
   .btn:active { opacity: 0.82; }
