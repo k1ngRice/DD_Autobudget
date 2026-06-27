@@ -255,14 +255,7 @@
 <div class="sheet-overlay" id="sheet-overlay" onclick="closeSheet()"></div>
 <div class="sheet" id="add-sheet">
   <div class="sheet-handle"></div>
-  <div id="applepay-banner" style="display:none;background:#f0f7ff;border:1px solid #b5d4f4;border-radius:12px;padding:10px 14px;margin-bottom:1rem;align-items:center;gap:10px;">
-    <span style="font-size:20px;">&#x1F4B3;</span>
-    <div>
-      <div style="font-size:13px;font-weight:600;color:#185fa5;" id="applepay-banner-title">Apple Pay transaction detected</div>
-      <div style="font-size:12px;color:var(--muted);" id="applepay-banner-sub">Amount and merchant pre-filled &#x2014; confirm details below</div>
-    </div>
-  </div>
-  <div class="sheet-title" id="sheet-title-text">Add Transaction</div>
+  <div class="sheet-title">Add Transaction</div>
   <div class="form-grid">
     <div class="form-full">
       <label>Account</label>
@@ -891,48 +884,6 @@ document.addEventListener('click',function(e){
   if(e.target===document.getElementById('balance-modal')) closeBalanceModal();
 });
 
-// ── URL param pre-fill (Apple Pay Shortcut) ───────────
-function checkURLParams() {
-  const params = new URLSearchParams(window.location.search);
-  if (!params.get('add')) return;
-
-  const amount   = params.get('amount')   || '';
-  const merchant = params.get('merchant') || '';
-  const cat      = params.get('cat')      || 'Other';
-  const acct     = params.get('acct')     || 'checking';
-  const today    = new Date().toISOString().split('T')[0];
-
-  // Pre-fill the sheet
-  if (amount)   document.getElementById('m-amount').value = parseFloat(amount).toFixed(2);
-  if (merchant) document.getElementById('m-name').value   = decodeURIComponent(merchant);
-  document.getElementById('m-date').value = today;
-
-  // Set category if it matches one of ours
-  const catEl = document.getElementById('m-cat');
-  const opts = Array.from(catEl.options).map(o => o.value.toLowerCase());
-  const catLower = cat.toLowerCase();
-  const match = opts.find(o => o === catLower);
-  if (match) catEl.value = catEl.options[opts.indexOf(match)].value;
-
-  // Set account segment
-  setSegment('acct', acct === 'savings' ? 'savings' : 'checking');
-  setSegment('type', 'expense');
-
-  // Show the Apple Pay banner
-  const banner = document.getElementById('applepay-banner');
-  banner.style.display = 'flex';
-  if (merchant) {
-    document.getElementById('applepay-banner-title').textContent =
-      merchant + (amount ? '  —  $' + parseFloat(amount).toFixed(2) : '');
-  }
-
-  // Clean URL so refreshing doesn't re-trigger
-  window.history.replaceState({}, '', window.location.pathname);
-
-  // Open the sheet once Firebase is ready (slight delay so auth can complete)
-  setTimeout(() => openSheet(), 800);
-}
-
 // ── Init ───────────────────────────────────────────────
 document.getElementById('m-date').value=new Date().toISOString().split('T')[0];
 const fDate=document.getElementById('f-date');
@@ -945,11 +896,8 @@ const savedCfg=localStorage.getItem('bgt_fb_config');
 if(savedCfg){
   document.getElementById('setup-banner').style.display='none';
   connectFirebase(JSON.parse(savedCfg));
-  // Check for Apple Pay URL params after a short delay to let auth settle
-  setTimeout(checkURLParams, 300);
 } else {
   setSync('offline'); render();
-  checkURLParams();
 }
 </script>
 </body>
