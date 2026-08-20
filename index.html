@@ -295,6 +295,13 @@
       <input type="text" id="m-name" placeholder="e.g. Grocery run">
     </div>
     <div class="form-full">
+      <label>Payment Method</label>
+      <div class="seg seg-2">
+        <button class="seg-btn active" id="m-pay-debit" onclick="setSegment('pay','debit')">Debit</button>
+        <button class="seg-btn" id="m-pay-credit" onclick="setSegment('pay','credit')">Credit</button>
+      </div>
+    </div>
+    <div class="form-full">
       <button class="btn" onclick="addTxMobile()">Add Transaction</button>
     </div>
   </div>
@@ -438,6 +445,12 @@
                     <option>Utilities</option><option>Salary</option><option>Savings deposit</option><option>Other</option>
                   </select>
                 </div>
+                <div class="form-full"><label>Payment Method</label>
+                  <select id="f-pay">
+                    <option value="debit">Debit</option>
+                    <option value="credit">Credit</option>
+                  </select>
+                </div>
                 <div class="form-full"><button class="btn" onclick="addTxDesktop()">Add Transaction</button></div>
               </div>
             </div>
@@ -506,7 +519,7 @@ const CATEGORY_MAP = { 'Health':'Volleyball', 'Entertainment':'YuGiOh' };
 
 let txs = [], txTab = 'all', currentPage = 1;
 let db = null, auth = null, txsRef = null, balancesRef = null, firebaseApp = null, currentUser = null;
-let mAcct = 'checking', mType = 'expense';
+let mAcct = 'checking', mType = 'expense', mPay = 'debit';
 let isMobile = () => window.innerWidth <= 640;
 
 // ── Helpers ────────────────────────────────────────────
@@ -529,6 +542,10 @@ function setSegment(group, val) {
     mAcct = val;
     document.getElementById('m-acct-checking').classList.toggle('active', val==='checking');
     document.getElementById('m-acct-savings').classList.toggle('active',  val==='savings');
+  } else if (group === 'pay') {
+    mPay = val;
+    document.getElementById('m-pay-debit').classList.toggle('active',  val==='debit');
+    document.getElementById('m-pay-credit').classList.toggle('active', val==='credit');
   } else {
     mType = val;
     document.getElementById('m-type-expense').classList.toggle('active', val==='expense');
@@ -681,9 +698,9 @@ async function handleAuth() {
 function logout(){ if(auth) auth.signOut(); }
 
 // ── Add transaction ────────────────────────────────────
-async function saveTx(acct,type,amount,name,cat,date) {
+async function saveTx(acct,type,amount,name,cat,date,pay) {
   if(!amount){alert('Please enter an amount.');return false;}
-  const tx={id:Date.now(),acct,type,name:name||cat,amount,cat,date};
+  const tx={id:Date.now(),acct,type,name:name||cat,amount,cat,date,pay:pay||'debit'};
   if(txsRef&&currentUser){
     try{await txsRef.push(tx);}
     catch(e){alert('Save failed: '+e.message);return false;}
@@ -695,7 +712,7 @@ async function addTxMobile() {
   const name=document.getElementById('m-name').value.trim();
   const cat=document.getElementById('m-cat').value;
   const date=document.getElementById('m-date').value||new Date().toISOString().split('T')[0];
-  if(await saveTx(mAcct,mType,amount,name,cat,date)){
+  if(await saveTx(mAcct,mType,amount,name,cat,date,mPay)){
     document.getElementById('m-amount').value='';
     document.getElementById('m-name').value='';
     closeSheet();
@@ -708,7 +725,8 @@ async function addTxDesktop() {
   const name=document.getElementById('f-name').value.trim();
   const cat=document.getElementById('f-cat').value;
   const date=document.getElementById('f-date').value||new Date().toISOString().split('T')[0];
-  if(await saveTx(acct,type,amount,name,cat,date)){
+  const pay=document.getElementById('f-pay').value;
+  if(await saveTx(acct,type,amount,name,cat,date,pay)){
     document.getElementById('f-amount').value='';
     document.getElementById('f-name').value='';
   }
@@ -814,11 +832,12 @@ function buildTxHTML(list, elId) {
     html+=`<div class="month-header">${groups[key].label}</div>`;
     html+=groups[key].txs.map(t=>{
       const isInc=t.type==='income', mc=CATEGORY_MAP[t.cat]||t.cat, color=CAT_COLORS[mc]||'#888', acct=t.acct||'checking';
+      const payLabel = t.pay ? (' · <span style="font-size:10px;padding:1px 5px;border-radius:3px;font-weight:600;vertical-align:middle;background:'+(t.pay==='credit'?'#fce4e4':'#e6f1fb')+';color:'+(t.pay==='credit'?'#9b2226':'#185fa5')+'">'+t.pay+'</span>') : '';
       return '<div class="tx-row">'+
         '<div class="tx-dot" style="background:'+color+'"></div>'+
         '<div class="tx-info">'+
           '<div class="tx-name">'+t.name+'<span class="tx-acct-pill '+acct+'">'+acct+'</span></div>'+
-          '<div class="tx-meta">'+mc+' · '+t.date+'</div>'+
+          '<div class="tx-meta">'+mc+payLabel+' · '+t.date+'</div>'+
         '</div>'+
         '<div class="tx-amount" style="color:'+(isInc?'var(--green)':'var(--red)')+'">'+( isInc?'+':'-')+fmt(t.amount)+'</div>'+
         '<button class="tx-del" data-key="'+(t.fbKey||'null')+'" title="Delete">×</button>'+
