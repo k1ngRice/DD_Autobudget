@@ -115,6 +115,9 @@
   .tx-amount { font-family: var(--mono); font-size: 14px; font-weight: 600; flex-shrink: 0; }
   .tx-del { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 20px; line-height: 1; padding: 4px 6px; border-radius: 6px; flex-shrink: 0; }
   .tx-del:active { background: var(--red-bg); color: var(--red); }
+  .undo-redo-btn { transition: opacity 0.15s; }
+  .undo-redo-btn:not(:disabled) { opacity: 1 !important; }
+  .undo-redo-btn:not(:disabled):active { background: var(--accent) !important; color: white !important; }
 
   .empty { padding: 2.5rem 1rem; text-align: center; color: var(--muted); font-size: 13px; }
 
@@ -412,6 +415,16 @@
       <div class="desktop-layout desktop-form" style="display:none;">
         <div class="desktop-tx-panel">
           <div class="card" style="margin-bottom:0;">
+            <div style="display:flex;align-items:center;justify-content:flex-end;padding:0.6rem 0.75rem 0;gap:6px;">
+              <button id="undo-btn-desk" onclick="undoAction()" disabled
+                style="padding:6px 14px;font-size:12px;font-weight:600;font-family:var(--sans);background:var(--bg);color:var(--accent);border:1px solid var(--border);border-radius:8px;cursor:pointer;opacity:0.4;">
+                ↩ Undo
+              </button>
+              <button id="redo-btn-desk" onclick="redoAction()" disabled
+                style="padding:6px 14px;font-size:12px;font-weight:600;font-family:var(--sans);background:var(--bg);color:var(--accent);border:1px solid var(--border);border-radius:8px;cursor:pointer;opacity:0.4;">
+                Redo ↪
+              </button>
+            </div>
             <div class="tabs">
               <button class="tab active" onclick="switchTxTab('all')">All</button>
               <button class="tab" onclick="switchTxTab('checking')">Checking</button>
@@ -462,6 +475,16 @@
     <!-- TRANSACTIONS VIEW (mobile only) -->
     <div id="view-txns" style="display:none;">
       <div class="card" style="margin-bottom:0;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:0.6rem 0.75rem 0;gap:6px;">
+          <button id="undo-btn-mobile" onclick="undoAction()" disabled
+            style="flex:1;padding:8px;font-size:13px;font-weight:600;font-family:var(--sans);background:var(--bg);color:var(--accent);border:1px solid var(--border);border-radius:10px;cursor:pointer;opacity:0.4;">
+            ↩ Undo
+          </button>
+          <button id="redo-btn-mobile" onclick="redoAction()" disabled
+            style="flex:1;padding:8px;font-size:13px;font-weight:600;font-family:var(--sans);background:var(--bg);color:var(--accent);border:1px solid var(--border);border-radius:10px;cursor:pointer;opacity:0.4;">
+            Redo ↪
+          </button>
+        </div>
         <div class="tabs">
           <button class="tab active" onclick="switchTxTab('all')">All</button>
           <button class="tab" onclick="switchTxTab('checking')">Checking</button>
@@ -518,6 +541,7 @@ const CAT_COLORS = {
 const CATEGORY_MAP = { 'Health':'Volleyball', 'Entertainment':'YuGiOh' };
 
 let txs = [], txTab = 'all', currentPage = 1;
+let undoStack = [], redoStack = [];
 let db = null, auth = null, txsRef = null, balancesRef = null, firebaseApp = null, currentUser = null;
 let mAcct = 'checking', mType = 'expense', mPay = 'debit';
 let isMobile = () => window.innerWidth <= 640;
@@ -670,10 +694,11 @@ function connectFirebase(cfg) {
         document.getElementById('mobile-signout-btn').style.display='none';
         document.getElementById('bottom-nav').classList.remove('visible');
         document.getElementById('fab').classList.remove('visible');
-        txs=[];
+        txs=[]; undoStack=[]; redoStack=[];
         if(txsRef) txsRef.off();
         if(balancesRef) balancesRef.off();
         setSync('offline');
+        updateUndoRedoBtns();
       }
     });
     db.ref('.info/connected').on('value',snap=>{ if(!snap.val()&&currentUser) setSync('connecting','Reconnecting...'); });
@@ -702,7 +727,12 @@ async function saveTx(acct,type,amount,name,cat,date,pay) {
   if(!amount){alert('Please enter an amount.');return false;}
   const tx={id:Date.now(),acct,type,name:name||cat,amount,cat,date,pay:pay||'debit'};
   if(txsRef&&currentUser){
-    try{await txsRef.push(tx);}
+    try{
+      const ref = await txsRef.push(tx);
+      undoStack.push({action:'add', fbKey: ref.key, tx});
+      redoStack = [];
+      updateUndoRedoBtns();
+    }
     catch(e){alert('Save failed: '+e.message);return false;}
   } else {alert('Must be logged in.');return false;}
   return true;
@@ -733,9 +763,72 @@ async function addTxDesktop() {
 }
 async function deleteTx(fbKey){
   if(txsRef&&fbKey&&currentUser){
-    try{await txsRef.child(fbKey).remove();}
+    try{
+      const tx = txs.find(t=>t.fbKey===fbKey);
+      await txsRef.child(fbKey).remove();
+      if(tx){
+        undoStack.push({action:'delete', fbKey, tx});
+        redoStack = [];
+        updateUndoRedoBtns();
+      }
+    }
     catch(e){alert('Delete failed: '+e.message);}
   }
+}
+
+async function undoAction(){
+  if(!undoStack.length) return;
+  const last = undoStack.pop();
+  if(last.action==='add'){
+    // Undo an add = delete it
+    try{
+      await txsRef.child(last.fbKey).remove();
+      redoStack.push({action:'add', fbKey:last.fbKey, tx:last.tx});
+    } catch(e){alert('Undo failed: '+e.message); undoStack.push(last); return;}
+  } else if(last.action==='delete'){
+    // Undo a delete = re-add it
+    try{
+      await txsRef.child(last.fbKey).set(last.tx);
+      redoStack.push({action:'delete', fbKey:last.fbKey, tx:last.tx});
+    } catch(e){alert('Undo failed: '+e.message); undoStack.push(last); return;}
+  }
+  updateUndoRedoBtns();
+}
+
+async function redoAction(){
+  if(!redoStack.length) return;
+  const last = redoStack.pop();
+  if(last.action==='add'){
+    // Redo an add = re-add it
+    try{
+      await txsRef.child(last.fbKey).set(last.tx);
+      undoStack.push({action:'add', fbKey:last.fbKey, tx:last.tx});
+    } catch(e){alert('Redo failed: '+e.message); redoStack.push(last); return;}
+  } else if(last.action==='delete'){
+    // Redo a delete = delete it again
+    try{
+      await txsRef.child(last.fbKey).remove();
+      undoStack.push({action:'delete', fbKey:last.fbKey, tx:last.tx});
+    } catch(e){alert('Redo failed: '+e.message); redoStack.push(last); return;}
+  }
+  updateUndoRedoBtns();
+}
+
+function updateUndoRedoBtns(){
+  ['undo-btn-mobile','undo-btn-desk'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+    el.disabled = undoStack.length===0;
+    el.style.opacity = undoStack.length===0 ? '0.35' : '1';
+    el.style.cursor  = undoStack.length===0 ? 'default' : 'pointer';
+  });
+  ['redo-btn-mobile','redo-btn-desk'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+    el.disabled = redoStack.length===0;
+    el.style.opacity = redoStack.length===0 ? '0.35' : '1';
+    el.style.cursor  = redoStack.length===0 ? 'default' : 'pointer';
+  });
 }
 
 // ── Tab switching ──────────────────────────────────────
