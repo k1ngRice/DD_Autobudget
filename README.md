@@ -18,6 +18,22 @@ A lightweight personal budgeting app in a single `index.html` file. Track income
 
 There is no build step. Open `index.html` in a browser, or host it on any static host such as GitHub Pages.
 
+### Using the existing project
+
+To use the app's existing Firebase backend, enter these values on the setup screen:
+
+| Field        | Value                                                  |
+| ------------ | ------------------------------------------------------ |
+| API Key      | `AIzaSyCOS8bpnHwn3HcznD1qinMb0--s17oE8Jc`              |
+| Auth Domain  | `autobudget-1af58.firebaseapp.com`                     |
+| Database URL | `https://autobudget-1af58-default-rtdb.firebaseio.com` |
+| Project ID   | `autobudget-1af58`                                     |
+| App ID       | `1:514206129408:web:8023273b1cb17e11cba7e5`            |
+
+Then sign in with your email and password, or enter a new email and password to create an account. Each account only sees its own data.
+
+To use your own backend instead, follow the steps below.
+
 ### 1. Create a Firebase project
 
 1. Create a project at [console.firebase.google.com](https://console.firebase.google.com).
